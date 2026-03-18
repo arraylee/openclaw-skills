@@ -1,60 +1,84 @@
 ---
 name: quick-ack
-description: When a response requires slow operations (web search, API calls, complex reasoning), immediately output a warm acknowledgment sentence before processing, so the toy can speak it right away while the full answer loads.
+description: For every message from the FoloToy hardware channel — immediately output a brief acknowledgment in the agent's SOUL.md voice, then rewrite the full response into a clean, TTS-friendly format before delivering it.
 user-invocable: false
 metadata: {"openclaw":{"emoji":"⚡","always":true}}
 ---
 
-# Quick Acknowledgment for Slow Responses
+# FoloToy Channel: Instant Ack + TTS-Friendly Response
 
-## Purpose
+## Scope
 
-AI toy hardware (e.g. FoloToy) starts speaking the moment the first tokens arrive. This skill ensures every slow response begins with a brief, in-character acknowledgment sentence — so the toy sounds responsive even when the answer takes a few seconds to generate.
+This skill activates **only** when the inbound message comes from the **FoloToy** hardware channel.
 
-## When to activate
+To detect the channel, check the session routing key for `folotoy` (e.g. `agent:main:channel:folotoy`), or check if the channel context identifier contains `folotoy` (case-insensitive).
 
-Apply **automatically** before every response that requires any of the following:
+If the message is **not** from the FoloToy channel, do nothing — skip this skill entirely.
 
-- Searching the web or fetching a URL
-- Calling an external API or service
-- Reading files or documents
-- Running shell commands or code
-- Reasoning through a complex math, science, or planning problem
-- Generating a long story or creative content (>100 words)
+---
 
-Do **not** apply for instant factual replies you can answer in one sentence without tools.
+## Step 1 — Acknowledgment (do this FIRST, before anything else)
 
-## Workflow
+The very first tokens you output must be a single short acknowledgment sentence.
 
-1. **Output the acknowledgment first** — before any tool call, before any thinking.
+Rules:
+- Output it **immediately** — before thinking, before tool calls, before generating the answer
+- Use the voice and personality defined in `SOUL.md` exactly
+- Match the **language** of the user's message (Chinese → Chinese, English → English)
+- Maximum 15 words / 20 Chinese characters
+- Signal you heard them and are now working on it — do NOT preview the answer
+- Do NOT skip this step even for simple questions
 
-   Write a single natural sentence (≤ 20 words) that:
-   - Matches the **language** of the user's message exactly (Chinese → Chinese, English → English, etc.)
-   - Sounds warm, playful, and toy-companion-like — NOT robotic or formal
-   - Signals you heard the request and are now working on it
-   - Does NOT preview or summarize the answer yet
+---
 
-   Speak **in the voice defined by SOUL.md**. The examples below are only structural references — use your own SOUL.md character's vocabulary and style:
+## Step 2 — Generate the answer normally
 
-   | Language | Structural example (replace with your persona's voice) |
-   |----------|---------|
-   | 中文 | "收到啦～我去帮你查一下，好了马上来告诉你！" |
-   | English | "Got it! Give me a second, I'll be right back with the answer!" |
+Process the user's request as you normally would. Use tools if needed. Generate the full response internally.
 
-2. **Process the request** normally using whatever tools are needed.
+---
 
-3. **Deliver the full answer** — no need to re-announce completion. Just give the result.
+## Step 3 — Rewrite for TTS playback
 
-## Tone rules
+Before outputting the answer, pass it through the following rewrite rules. Use the current LLM to perform this rewrite.
 
-- **Always use the persona defined in `SOUL.md`** — this skill does not define its own character. The acknowledgment must sound exactly like the agent's configured identity speaks.
-- Never use formal or corporate language ("I will now process your request…")
-- Keep the voice consistent with how the agent already responds in normal conversation
-- If no SOUL.md is configured, default to a warm and casual tone
+### Always do:
+- Remove all Markdown formatting: no `**bold**`, no `# headings`, no `- bullet lists`, no `> blockquotes`
+- Replace list items with natural spoken sentences
+- Replace abbreviations and symbols with spoken equivalents (e.g. `→` → "to", `&` → "and", `%` → "percent")
+- Keep sentences short — aim for ≤ 20 words per sentence
+- Remove meta-commentary like "Here is my answer:" or "In summary:"
+
+### If the response contains code blocks or structured data (JSON, tables, formulas):
+- Do NOT read out the code or data
+- Instead say: **"详细内容我已经发到飞书了，你去飞书查看一下吧～"** (or the English equivalent: "I've sent the details to Feishu — check it there!")
+- *(Note: Feishu forwarding is handled by the feishu-bridge skill when available)*
+
+### If the response is a story, poem, or creative narrative:
+- Output the **full original text** without condensing
+- Only strip Markdown formatting; preserve all story content word for word
+
+### For all other responses:
+- Condense to the core answer only
+- Remove background explanation unless the user explicitly asked "why" or "explain"
+- Target length: ≤ 5 sentences for most answers
+
+---
+
+## Output format
+
+```
+[Acknowledgment sentence]
+
+[TTS-rewritten answer]
+```
+
+No section headers, no labels, no "Step 1 / Step 2" markers in the output — just the two pieces of text, delivered naturally.
+
+---
 
 ## Guardrails
 
-- The acknowledgment must be the **very first output** — before any `<tool_call>` block
-- Maximum 20 words / 30 Chinese characters
-- Do not include the acknowledgment if the full answer is already ready (i.e. no tools needed and answer is < 2 sentences)
-- Do not repeat the user's question back to them in the acknowledgment
+- Never output raw Markdown to FoloToy channel
+- Never skip the acknowledgment, even for one-word answers
+- Never read out code, JSON, or table data — always redirect to Feishu
+- Preserve story content in full — do not summarize narratives
