@@ -1,27 +1,34 @@
-# openclaw-skills
+# openclaw-folotoy
 
-OpenClaw skills for AI toy hardware (FoloToy / hardware channel) — faster, cleaner, smarter.
+OpenClaw plugin for FoloToy and other hardware voice channels.
 
-## Skills
+## What it does
 
-### ⚡ quick-ack
-When a response requires slow operations (web search, API calls, complex reasoning), immediately outputs a warm acknowledgment sentence so the toy starts speaking right away.
+**Hook 1 — Instant acknowledgment** (`message:received`)
+Before the LLM even starts processing, immediately sends a short acknowledgment to the hardware channel so the toy starts speaking right away.
 
-**Install:**
+**Hook 2 — TTS content filter** (`message:sent`)
+Intercepts outgoing responses and:
+- Strips all Markdown formatting (bold, headers, bullets, code blocks)
+- Redirects code / JSON / tables → tells user to check Feishu instead
+- Preserves stories and poems in full
+- Requires OpenClaw ≥ 2026.3.2
+
+## Install
+
 ```
-openclaw skills install github:YOUR_GITHUB_USERNAME/openclaw-skills/quick-ack
+openclaw plugins install github:arraylee/openclaw-skills
 ```
 
-### 🔊 folotoy-filter *(coming soon)*
-Filters and adapts AI responses for hardware TTS playback — strips code blocks, condenses long answers, redirects rich content to Feishu, but preserves storytelling in full.
+## Channel detection
 
-### 🪁 feishu-bridge *(coming soon)*
-Lets you create Feishu calendar events, send messages, and more — all by talking to your toy. Also mirrors toy conversations to a Feishu bot.
+By default, any channel that is **not** one of the known rich-text surfaces (webchat, feishu, discord, slack, telegram, whatsapp, signal, matrix, msteams, imessage) is treated as a hardware channel.
 
-## Requirements
-
-- [OpenClaw](https://openclaw.ai) installed
-- FoloToy or compatible hardware channel configured
+To pin it to a specific channel ID:
+```
+# in ~/.openclaw/.env
+FOLOTOY_CHANNEL=your_channel_id
+```
 
 ## License
 
