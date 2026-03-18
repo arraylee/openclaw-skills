@@ -9,11 +9,27 @@ metadata: {"openclaw":{"emoji":"⚡","always":true}}
 
 ## Scope
 
-This skill activates **only** when the inbound message comes from the **FoloToy** hardware channel.
+This skill activates when the inbound message comes from a **hardware/voice channel** — i.e. any channel that is NOT a rich-text surface where users can read formatted output.
 
-To detect the channel, check the session routing key for `folotoy` (e.g. `agent:main:channel:folotoy`), or check if the channel context identifier contains `folotoy` (case-insensitive).
+### Channel detection (in priority order)
 
-If the message is **not** from the FoloToy channel, do nothing — skip this skill entirely.
+1. **Env var override**: If `FOLOTOY_CHANNEL` is set, activate only when the current channelId exactly matches that value. This is the most reliable option once you know the channel name.
+
+2. **Exclusion list (fallback)**: If `FOLOTOY_CHANNEL` is not set, activate for any channel that is **not** in this known rich-text list:
+   - `webchat`
+   - `feishu` / `lark`
+   - `discord`
+   - `slack`
+   - `telegram`
+   - `whatsapp`
+   - `signal`
+   - `matrix`
+   - `msteams`
+   - `imessage`
+
+   Any channel not on this list is treated as a hardware/voice surface and gets the TTS-friendly treatment.
+
+If the message **is** from a known rich-text channel, do nothing — skip this skill entirely.
 
 ---
 
